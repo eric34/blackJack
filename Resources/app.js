@@ -5,6 +5,13 @@ var win = Ti.UI.createWindow({
 
 });
 
+// define some globals
+var handActive = false;
+var handResult;
+dealer_hand = new Array();
+player_hand = new Array();
+var game_over = false;
+
 // Get the images from the filesystem
 var clubImage = Ti.Filesystem.getFile(Titanium.Filesystem.resourcesDirectory, '/images/club.png');
 var heartImage = Ti.Filesystem.getFile(Titanium.Filesystem.resourcesDirectory, '/images/heart.png');
@@ -26,6 +33,13 @@ var standButton = Ti.UI.createButton({
 	title : 'stand'
 });
 
+var dealButton = Ti.UI.createButton({
+	height : 40,
+	width : 100,
+	bottom : 0,
+	title : 'deal'
+});
+
 hitButton.addEventListener('click', function() {
 	hit();
 });
@@ -34,11 +48,15 @@ standButton.addEventListener('click', function() {
 	stand();
 });
 
+dealButton.addEventListener('click', function() {
+	newHand();
+});
+
 // Make a couple views to seperate the card dealing area
 var dealerView = Ti.UI.createView({
 	layout : 'horizontal',
-	backgroundColor : 'green',
-	height : '50%'
+	backgroundColor : '#666',
+	height : '45%'
 });
 
 var dealerScore = Ti.UI.createLabel({
@@ -52,8 +70,8 @@ dealerView.add(dealerScore);
 
 var playerView = Ti.UI.createView({
 	layout : 'horizontal',
-	backgroundColor : 'yellow',
-	height : '50%'
+	backgroundColor : '#999',
+	height : '45%'
 });
 
 var playerScore = Ti.UI.createLabel({
@@ -65,6 +83,13 @@ var playerScore = Ti.UI.createLabel({
 
 playerView.add(playerScore);
 
+var chipView = Ti.UI.createView({
+	layout : 'horizontal',
+	backgroundColor : 'white',
+	height : '10%'
+});
+
+// start my sample card builder
 var firstCard = Ti.UI.createView({
 	layout : 'vertical',
 	borderRadius : 5,
@@ -122,27 +147,15 @@ secondCard.add(pCard2);
 
 dealerView.add(firstCard);
 dealerView.add(secondCard);
+// end my sample card builder
 
 
-dealer_hand = new Array();
-player_hand = new Array();
-var game_over = false;
 
 // Constructor for Card objects
 function Card(num, suit) {
 	this.num = num;
 	this.suit = suit;
-	this.fname = fname;
-
-}
-
-function fname() {
-	return this.num + this.suit + ".png";
-}
-
-// The function fname() makes a filename for an image.
-// The filenames are a concatenation of card number and suit
-// Ace = 1 and King = 13
+	}
 
 // Constructor for Deck Object
 function Deck() {
@@ -159,6 +172,7 @@ function Deck() {
 	this.dealCard = dealCard;
 }
 
+// this function shuffles the deck
 function shuffle() {
 	Ti.API.info("Shuffling");
 
@@ -256,8 +270,7 @@ function newGame() {
 		pCard2.image = clubImage;
 	}
 
-	win.add(dealerView);
-	win.add(playerView);
+	
 	
 	// document.images[0].src = "blank.gif"; // The hole card is not shown
 	// dealer_hand[ 1 ] = deck.dealCard();
@@ -343,6 +356,12 @@ function stand() {
 
 }// end function stand()
 
+function newHand() {
+	newGame();
+	
+	
+}
+
 function score(hand) {
 	var total = 0;
 	var soft = 0;
@@ -374,18 +393,18 @@ function winner() {
 	var player_total = score(player_hand);
 	var dealer_total = score(dealer_hand);
 	if (player_total > 21) {// Busted
-		// document.form1.result.value = "Dealer wins";
+		alert('Dealer Wins');
 	} else {
 		if (dealer_total > 21) {// Busted
-			//document.form1.result.value = "Player wins";
+			alert("Player wins");
 		} else {
 			if (player_total == dealer_total) {
-				// document.form1.result.value = "Tie game";
+				alert("Push");
 			} else {
 				if (player_total > dealer_total) {
-					// document.form1.result.value = "Player wins";
+					alert("Player wins");
 				} else {
-					//  document.form1.result.value = "Dealer wins";
+					alert("Dealer wins");
 				}
 			}
 		}
@@ -415,8 +434,13 @@ standButton.addEventListener('click', function() {
 	stand();
 });
 
-playerView.add(hitButton);
-playerView.add(standButton);
+chipView.add(hitButton);
+chipView.add(standButton);
+chipView.add(dealButton);
 
+win.add(dealerView);
+win.add(playerView);
+win.add(chipView);
+	
 win.open();
 newGame();
