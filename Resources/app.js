@@ -6,10 +6,6 @@ var win = Ti.UI.createWindow({
 });
 
 // define some globals
-var handActive = false;
-var handResult;
-dealer_hand = new Array();
-player_hand = new Array();
 var game_over = false;
 
 // Get the images from the filesystem
@@ -89,73 +85,82 @@ var chipView = Ti.UI.createView({
 	height : '10%'
 });
 
-// start my sample card builder
-var firstCard = Ti.UI.createView({
-	layout : 'vertical',
-	borderRadius : 5,
-	borderColor : 'black',
-	borderWidth : 3,
-	backgroundColor : 'white',
-	left : 10,
-	top : 40,
-	height : 180,
-	width : 120
-});
-var secondCard = Ti.UI.createView({
-	layout : 'vertical',
-	borderRadius : 5,
-	borderColor : 'black',
-	borderWidth : 3,
-	backgroundColor : 'white',
-	left : 10,
-	top : 40,
-	height : 180,
-	width : 120
-});
-
-var label1 = Titanium.UI.createLabel({
-	id : 'font_label_test',
-	text : 'A',
-	left : 5,
-	height : 36,
-	textAlign : 'center'
-});
-
-var label2 = Titanium.UI.createLabel({
-	id : 'font_label_test',
-	text : 'K',
-	left : 5,
-	height : 36,
-	textAlign : 'center'
-});
-
-var pCard1 = Ti.UI.createImageView({
-	backgroundColor : 'white',
-	image : spadeImage
-});
-var pCard2 = Ti.UI.createImageView({
-	backgroundColor : 'white',
-	image : heartImage
-});
-
-
-firstCard.add(label1);
-firstCard.add(pCard1);
-
-secondCard.add(label2);
-secondCard.add(pCard2);
-
-dealerView.add(firstCard);
-dealerView.add(secondCard);
-// end my sample card builder
-
-
-
-// Constructor for Card objects
-function Card(num, suit) {
+// Constructor for Card objects with images as objects
+function Card(num, suit, img) {
 	this.num = num;
 	this.suit = suit;
+	this.img = img;
+}
+
+// my function for making and returning the card image object
+function buildCard(cardNumber, image) {
+	var cardView = Ti.UI.createView({
+		layout : 'vertical',
+		borderRadius : 5,
+		borderColor : 'black',
+		borderWidth : 3,
+		backgroundColor : 'white',
+		left : 10,
+		top : 40,
+		height : 90,
+		width : 60
+	});
+
+	var cardLabel = Titanium.UI.createLabel({
+		id : 'font_label_test',
+		text : cardNumber,
+		left : 5,
+		height : 36,
+		textAlign : 'center'
+	});
+
+	var suitImage = Ti.UI.createImageView({
+		backgroundColor : 'white',
+		width : 25,
+		height : 25,
+		image : image
+	});
+
+	if (cardNumber === 1 || cardNumber > 10) {
+		switch(cardNumber) {
+			case 1:
+				cardLabel.text = 'A';
+				break;
+			case 11:
+				cardLabel.text = 'J';
+				break;
+			case 12:
+				cardLabel.text = 'Q';
+				break;
+			case 13:
+				cardLabel.text = 'K';
+				break;
+			default:
+				cardLabel.text = '#';
+				break;
+		}
+	} else {
+		cardLabel.text = cardNumber;
 	}
+	cardView.add(cardLabel);
+	cardView.add(suitImage);
+	return cardView;
+}
+
+//Constructor for hole card object
+function holeCard() {
+	return Ti.UI.createView({
+		layout : 'vertical',
+		borderRadius : 5,
+		borderColor : 'black',
+		borderWidth : 3,
+		backgroundColor : 'blue',
+		left : 10,
+		top : 40,
+		height : 90,
+		width : 60
+	});
+}
 
 // Constructor for Deck Object
 function Deck() {
@@ -163,10 +168,12 @@ function Deck() {
 	this.next_card = 0;
 	// fill the deck (in order, for now)
 	for ( i = 1; i < 14; i++) {
-		this.cards[i - 1] = new Card(i, "c");
-		this.cards[i + 12] = new Card(i, "h");
-		this.cards[i + 25] = new Card(i, "s");
-		this.cards[i + 38] = new Card(i, "d");
+		//I added images here
+		this.cards[i - 1] = new Card(i, "c", buildCard(i, clubImage));
+		//called a function
+		this.cards[i + 12] = new Card(i, "h", buildCard(i, heartImage));
+		this.cards[i + 25] = new Card(i, "s", buildCard(i, spadeImage));
+		this.cards[i + 38] = new Card(i, "d", buildCard(i, diamondImage));
 	}
 	this.shuffle = shuffle;
 	this.dealCard = dealCard;
@@ -190,7 +197,6 @@ function shuffle() {
 // This deals the next card off the deck
 function dealCard() {
 	Ti.API.info("dealing");
-
 	return this.cards[this.next_card++];
 }
 
@@ -198,21 +204,30 @@ function dealCard() {
 var deck = new Deck();
 deck.shuffle();
 
-// The display function
+// the backup display function when stuff goes to hell
 function displayCard(player, card, up) {
-	if (player === "player") {
 
+	if (player === 'player') {
+		playerView.add(card.img);
+
+	} else {
+		if (!up) {
+			dealerView.add(holeCard());
+		} else {
+			dealerView.add(card.img);
+		}
 	}
 
-}
+};
 
 // The main loop, slowly converting from a javascript web page
 function newGame() {
 
 	Ti.API.info("In new Game");
 
-	if (deck.next_card > 39) {// shuffle the deck if 75% of
+	if (deck.next_card > 39) {
 		deck.shuffle();
+		// shuffle the deck if 75% of
 		// the cards have been used.
 	}
 
@@ -223,71 +238,24 @@ function newGame() {
 	// player gets one up first, then dealer down, then player up, then dealer up
 	player_hand[0] = deck.dealCard();
 	displayCard('player', player_hand[0], true);
+	Ti.API.info("Player first card is a " + player_hand[0].num + " " + player_hand[0].suit);
 
 	dealer_hand[0] = deck.dealCard();
 	// This is the hole card.
 	displayCard('dealer', dealer_hand[0], false);
+	Ti.API.info("Dealer first card is a " + dealer_hand[0].num + " " + dealer_hand[0].suit);
 
 	player_hand[1] = deck.dealCard();
 	displayCard('player', player_hand[1], true);
+	Ti.API.info("Player Second is a " + player_hand[1].num + " " + player_hand[1].suit);
 
 	dealer_hand[1] = deck.dealCard();
 	displayCard('dealer', dealer_hand[1], true);
-	
+	Ti.API.info("Dealer Second is a " + dealer_hand[1].num + " " + dealer_hand[1].suit);
+
 	//add up the score
 	playerScore.text = score(player_hand);
 	dealerScore.text = score(dealer_hand);
-
-	//Some logging to check my display
-	Ti.API.info("hit the first deal");
-	Ti.API.info("Dealer first card is a " + dealer_hand[0].num + " " + dealer_hand[0].suit);
-	Ti.API.info("Dealer Second is a " + dealer_hand[1].num + " " + dealer_hand[1].suit);
-	Ti.API.info("Player first card is a " + player_hand[0].num + " " + player_hand[0].suit);
-	Ti.API.info("Player Second is a " + player_hand[1].num + " " + player_hand[1].suit);
-
-	label1.text = dealer_hand[0].num;
-	label2.text = dealer_hand[1].num;
-
-	if (dealer_hand[0].suit == 'h') {
-		pCard1.image = heartImage;
-	} else if (dealer_hand[0].suit == 's') {
-		pCard1.image = spadeImage;
-
-	} else if (dealer_hand[0].suit == 'd') {
-		pCard1.image = diamondImage;
-	} else {
-		pCard1.image = clubImage;
-	}
-
-	if (dealer_hand[1].suit == 'h') {
-		pCard2.image = heartImage;
-	} else if (dealer_hand[1].suit == 's') {
-		pCard2.image = spadeImage;
-
-	} else if (dealer_hand[1].suit == 'd') {
-		pCard2.image = diamondImage;
-	} else {
-		pCard2.image = clubImage;
-	}
-
-	
-	
-	// document.images[0].src = "blank.gif"; // The hole card is not shown
-	// dealer_hand[ 1 ] = deck.dealCard();
-	// document.images[ 1 ].src = dealer_hand[ 1 ].fname();
-	// for ( i=2; i<6; i++) {
-	// document.images[i].src = "blank.gif";
-	// }
-	//
-	// player_hand[ 0 ] = deck.dealCard();
-	// document.images[ 6 ].src = player_hand[ 0 ].fname();
-	// player_hand[ 1 ] = deck.dealCard();
-	// document.images[ 7 ].src = player_hand[ 1 ].fname();
-	// for (i=8; i<12; i++) {
-	// document.images[i].src = "blank.gif";
-	// }
-	// //end the old way
-
 
 	// // Reset the form fields and the state variables
 	// window.status = "";
@@ -307,10 +275,12 @@ function hit() {
 	} else {
 		new_card = player_hand.length;
 		player_hand[new_card] = deck.dealCard();
+		displayCard('player', player_hand[new_card], true);
+		Ti.API.info("Player " + new_card + " is a " + player_hand[new_card].num + " " + player_hand[new_card].suit);
 		//document.images[new_card + 6].src = player_hand[new_card].fname();
 		total = score(player_hand);
 		playerScore.text = total;
-		
+
 		if (total > 21) {// Busted, game over.
 			alert("  busted");
 			//document.images[0].src = dealer_hand[0].fname();
@@ -335,7 +305,7 @@ function stand() {
 		// document.images[ 0 ].src = dealer_hand[ 0 ].fname(); // reveal the dealer hole card
 		while (score(dealer_hand) < 17) {// Dealer stands on soft 17
 			dealerScore.text = score(dealer_hand);
-			
+
 			new_card = dealer_hand.length;
 			dealer_hand[new_card] = deck.dealCard();
 			//  document.images[ new_card ].src = dealer_hand[ new_card ].fname();
@@ -357,9 +327,14 @@ function stand() {
 }// end function stand()
 
 function newHand() {
+	for (var i = 0; i < dealer_hand.length; i++) {
+		dealerView.remove(dealer_hand[i].img);
+	}
+	for (var i = 0; i < player_hand.length; i++) {
+		playerView.remove(player_hand[i].img);
+	}
 	newGame();
-	
-	
+
 }
 
 function score(hand) {
@@ -441,6 +416,6 @@ chipView.add(dealButton);
 win.add(dealerView);
 win.add(playerView);
 win.add(chipView);
-	
+
 win.open();
 newGame();
